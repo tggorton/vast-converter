@@ -250,13 +250,15 @@ def index():
             print(f"Filter script content:\\\\n{filter_complex_str}")
 
             # --- DEBUGGING FFMPEG PATH on Vercel ---
-            print(f"[DEBUG] app.root_path: {app.root_path}")
+            APP_DIR = os.path.dirname(os.path.abspath(__file__))
+            print(f"[DEBUG] APP_DIR (directory of app.py): {APP_DIR}")
+            # print(f"[DEBUG] app.root_path: {app.root_path}") # app.root_path might be /var/task
             try:
-                print(f"[DEBUG] Contents of app.root_path ({app.root_path}): {os.listdir(app.root_path)}")
+                print(f"[DEBUG] Contents of APP_DIR ({APP_DIR}): {os.listdir(APP_DIR)}")
             except Exception as e_list_root:
-                print(f"[DEBUG] Error listing app.root_path: {e_list_root}")
+                print(f"[DEBUG] Error listing APP_DIR: {e_list_root}")
             
-            bin_dir_path = os.path.join(app.root_path, 'bin')
+            bin_dir_path = os.path.join(APP_DIR, 'bin')
             print(f"[DEBUG] Expected bin_dir_path: {bin_dir_path}")
             try:
                 print(f"[DEBUG] Contents of bin_dir_path ({bin_dir_path}): {os.listdir(bin_dir_path)}")
@@ -265,8 +267,8 @@ def index():
             # --- END DEBUGGING ---
 
             # --- IMPORTANT: Update ffmpeg path for Vercel ---
-            # Assumes a static ffmpeg binary is in a 'bin' directory in your project root
-            ffmpeg_executable_path = os.path.join(app.root_path, 'bin/ffmpeg')
+            # Assumes a static ffmpeg binary is in a 'bin' directory relative to app.py
+            ffmpeg_executable_path = os.path.join(APP_DIR, 'bin/ffmpeg')
             print(f"[DEBUG] Trying primary ffmpeg_executable_path: {ffmpeg_executable_path}")
             
             if os.path.exists(ffmpeg_executable_path):
