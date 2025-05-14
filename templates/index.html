@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VAST to L-Bar Converter</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <header>
+        <div class="logo">
+            <img src="{{ url_for('static', filename='images/kerv-logo.png') }}" alt="Kerv Logo" class="logo-image">
+        </div>
+        <h1>VAST to L-Bar Converter</h1>
+        <div class="user-icon">
+            <!-- Placeholder for user icon if needed -->
+        </div>
+    </header>
+
+    <main class="container">
+        <form method="POST" enctype="multipart/form-data" class="vast-form">
+            <div class="form-group">
+                <label for="vast_input">Paste VAST XML or URL:</label>
+                <textarea name="vast_input" id="vast_input" rows="10" placeholder="Paste VAST XML content here, or provide a URL to a VAST XML file."></textarea>
+            </div>
+            <div class="form-group">
+                <label for="vast_file">Or Upload VAST File (.xml, .txt):</label>
+                <input type="file" name="vast_file" id="vast_file" accept=".xml,.txt">
+            </div>
+            <button type="submit" class="btn-submit">Convert VAST</button>
+        </form>
+
+        {% if error %}
+            <div class="error-message">
+                <p><strong>Error:</strong> {{ error }}</p>
+                {% if ffmpeg_stderr %}
+                    <p><strong>FFmpeg Details:</strong></p>
+                    <pre><code>{{ ffmpeg_stderr }}</code></pre>
+                {% endif %}
+            </div>
+        {% endif %}
+
+        {% if output_video_url %}
+            <section class="results-section">
+                <h2>Conversion Results</h2>
+                
+                <div class="result-item">
+                    <h3>Generated L-Bar Video:</h3>
+                    <video width="640" height="360" controls>
+                        <source src="{{ output_video_url }}" type="video/mp4">
+                        Your browser does not support the video tag.
+                    </video>
+                    <p><a href="{{ output_video_url }}" download="{{ output_filename }}">Download Video ({{ output_filename }})</a></p>
+                </div>
+
+                <div class="result-item">
+                    <h3>Extracted Information:</h3>
+                    <p><strong>Original AdTitle:</strong> {{ ad_title }}</p>
+                    <p><strong>Extracted Brand Name:</strong> {{ brand_name }}</p>
+                    <p><strong>Video MediaFile URL:</strong> <a href="{{ media_file_url }}" target="_blank">{{ media_file_url }}</a></p>
+                    <p><strong>Raw ClickThrough URL (for QR):</strong> <a href="{{ raw_clickthrough_url }}" target="_blank">{{ raw_clickthrough_url }}</a></p>
+                    <p><strong>Final ClickThrough URL (for display):</strong> <a href="{{ final_clickthrough_url }}" target="_blank">{{ final_clickthrough_url }}</a></p>
+                </div>
+
+                <div class="result-item">
+                    <h3>Generated QR Code:</h3>
+                    <img src="{{ qr_code_url }}" alt="Generated QR Code" style="width: 150px; height: 150px;">
+                    <p>Scans to: {{ raw_clickthrough_url }}</p>
+                </div>
+                
+                <div class="result-item raw-vast">
+                    <h3>Processed VAST Content (Snippet):</h3>
+                    <pre><code>{{ vast_content }}</code></pre>
+                </div>
+            </section>
+        {% endif %}
+    </main>
+
+    <footer>
+        <p>&copy; 2024 VAST Converter. For Kerv.</p>
+    </footer>
+
+</body>
+</html> 
