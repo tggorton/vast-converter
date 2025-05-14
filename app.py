@@ -249,15 +249,41 @@ def index():
             print(f"Filter script path: {filter_script_filepath}")
             print(f"Filter script content:\\\\n{filter_complex_str}")
 
+            # --- DEBUGGING FFMPEG PATH on Vercel ---
+            print(f"[DEBUG] app.root_path: {app.root_path}")
+            try:
+                print(f"[DEBUG] Contents of app.root_path ({app.root_path}): {os.listdir(app.root_path)}")
+            except Exception as e_list_root:
+                print(f"[DEBUG] Error listing app.root_path: {e_list_root}")
+            
+            bin_dir_path = os.path.join(app.root_path, 'bin')
+            print(f"[DEBUG] Expected bin_dir_path: {bin_dir_path}")
+            try:
+                print(f"[DEBUG] Contents of bin_dir_path ({bin_dir_path}): {os.listdir(bin_dir_path)}")
+            except Exception as e_list_bin:
+                print(f"[DEBUG] Error listing bin_dir_path: {e_list_bin}")
+            # --- END DEBUGGING ---
+
             # --- IMPORTANT: Update ffmpeg path for Vercel ---
             # Assumes a static ffmpeg binary is in a 'bin' directory in your project root
             ffmpeg_executable_path = os.path.join(app.root_path, 'bin/ffmpeg')
-            if not os.path.exists(ffmpeg_executable_path):
+            print(f"[DEBUG] Trying primary ffmpeg_executable_path: {ffmpeg_executable_path}")
+            
+            if os.path.exists(ffmpeg_executable_path):
+                print(f"[DEBUG] Primary ffmpeg path FOUND: {ffmpeg_executable_path}")
+                if not os.access(ffmpeg_executable_path, os.X_OK):
+                    print(f"[DEBUG] WARNING: Primary ffmpeg path {ffmpeg_executable_path} is NOT EXECUTABLE.")
+                else:
+                    print(f"[DEBUG] Primary ffmpeg path {ffmpeg_executable_path} is executable.")
+            else:
+                print(f"[DEBUG] Primary ffmpeg path NOT FOUND: {ffmpeg_executable_path}")
                  # Fallback for local testing if bin/ffmpeg isn't set up yet, or if Vercel provides one in PATH
                 if os.path.exists('/opt/homebrew/bin/ffmpeg'): # Local macOS
                     ffmpeg_executable_path = '/opt/homebrew/bin/ffmpeg'
+                    print(f"[DEBUG] Using local macOS ffmpeg path: {ffmpeg_executable_path}")
                 else: # General fallback, hoping ffmpeg is in PATH on Vercel after all
                     ffmpeg_executable_path = 'ffmpeg'
+                    print(f"[DEBUG] Using fallback 'ffmpeg' command from PATH.")
 
             ffmpeg_command = [
                 ffmpeg_executable_path, '-y',
