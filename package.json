@@ -3,6 +3,6 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "vercel-build": "mkdir -p public && chmod +x bin/ffmpeg"
+    "vc-build": "chmod +x ./bin/ffmpeg && mkdir -p public && echo 'dummy file' > public/index.html"
   }
 } 
