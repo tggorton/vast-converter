@@ -11,11 +11,14 @@ import tempfile
 from urllib.parse import unquote, urlparse, parse_qs
 
 app = Flask(__name__)
-app.config['UPLOAD_FOLDER'] = '/Users/grantgorton/Desktop/Projects/vast-to-ctv/uploads'
-app.config['GENERATED_FOLDER'] = '/Users/grantgorton/Desktop/Projects/vast-to-ctv/generated'
+
+# Vercel environment: Use /tmp for writable storage
+VERCEL_TMP_DIR = "/tmp"
+app.config['UPLOAD_FOLDER'] = os.path.join(VERCEL_TMP_DIR, 'vast_converter_uploads')
+app.config['GENERATED_FOLDER'] = os.path.join(VERCEL_TMP_DIR, 'vast_converter_generated')
 app.config['ALLOWED_EXTENSIONS'] = {'xml', 'txt'}
 
-# Ensure generated and uploads folders exist
+# Ensure generated and uploads folders exist in /tmp
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 os.makedirs(app.config['GENERATED_FOLDER'], exist_ok=True)
 
@@ -199,9 +202,11 @@ def index():
             ffmpeg_log_filepath = os.path.join(app.config['GENERATED_FOLDER'], f"{output_filename}.log")
             
             background_image_path = os.path.join(app.root_path, 'static/images/background-kerv.jpg')
-            font_path = "/System/Library/Fonts/Supplemental/Arial.ttf"
-            if not os.path.exists(font_path):
-                font_path = "Arial"
+            # Use a generic font name; Vercel's environment might have Arial or a substitute.
+            # A more robust solution is to bundle a .ttf file.
+            font_path = "Arial" 
+            # if not os.path.exists(font_path): # This check is not reliable for generic names
+            #     font_path = "Arial" # Fallback already set
 
             def escape_ffmpeg_text(text):
                 # Reverted to the version that was stable previously
@@ -242,10 +247,20 @@ def index():
             filter_script_filepath = filter_script_file.name
             filter_script_file.close()
             print(f"Filter script path: {filter_script_filepath}")
-            print(f"Filter script content:\\n{filter_complex_str}")
+            print(f"Filter script content:\\\\n{filter_complex_str}")
+
+            # --- IMPORTANT: Update ffmpeg path for Vercel ---
+            # Assumes a static ffmpeg binary is in a 'bin' directory in your project root
+            ffmpeg_executable_path = os.path.join(app.root_path, 'bin/ffmpeg')
+            if not os.path.exists(ffmpeg_executable_path):
+                 # Fallback for local testing if bin/ffmpeg isn't set up yet, or if Vercel provides one in PATH
+                if os.path.exists('/opt/homebrew/bin/ffmpeg'): # Local macOS
+                    ffmpeg_executable_path = '/opt/homebrew/bin/ffmpeg'
+                else: # General fallback, hoping ffmpeg is in PATH on Vercel after all
+                    ffmpeg_executable_path = 'ffmpeg'
 
             ffmpeg_command = [
-                '/opt/homebrew/bin/ffmpeg', '-y',
+                ffmpeg_executable_path, '-y',
                 '-loglevel', 'debug',
                 '-loop', '1', '-r', video_framerate, '-i', background_image_path,  # Input 0
                 '-loop', '1', '-r', video_framerate, '-i', qr_filepath,              # Input 1
@@ -260,7 +275,8 @@ def index():
             
             ffmpeg_stderr_content = ""
             try:
-                project_dir = "/Users/grantgorton/Desktop/Projects/vast-to-ctv"
+                # project_dir should be the app's root for Vercel, or CWD
+                project_dir = app.root_path # Or os.getcwd()
                 process = subprocess.Popen(ffmpeg_command, cwd=project_dir, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                 stdout, stderr = process.communicate(timeout=300)
 

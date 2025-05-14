@@ -1,0 +1,7 @@
+#!/bin/sh
+# IMPORTANT: This is a PLACEHOLDER file.
+# You MUST replace this file with an actual static Linux x86_64 ffmpeg binary.
+# Download it from a trusted source like https://johnvansickle.com/ffmpeg/
+# or https://github.com/BtbN/FFmpeg-Builds/releases
+# After replacing, make it executable: chmod +x bin/ffmpeg
+exit 1 
