@@ -130,8 +130,13 @@ def get_final_destination(clickthrough_url):
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
-    print("########## LATEST APP.PY IS RUNNING ##########") # Debug print
+    print("########## FUNCTION START - LATEST APP.PY IS RUNNING ##########", flush=True)
+    # Ensure APP_DIR is accessible; it's defined globally but let's log its value here too.
+    # APP_DIR = os.path.dirname(os.path.abspath(__file__)) # This is the global definition
+    # print(f"[DEBUG INDEX SCOPE] APP_DIR is: {APP_DIR}", flush=True)
+
     if request.method == 'POST':
+        print("########## POST REQUEST RECEIVED ##########", flush=True)
         vast_content = ""
         vast_input = request.form.get('vast_input', '').strip()
         vast_file = request.files.get('vast_file')
@@ -251,19 +256,19 @@ def index():
 
             # --- DEBUGGING FFMPEG PATH on Vercel ---
             APP_DIR = os.path.dirname(os.path.abspath(__file__))
-            print(f"[DEBUG] APP_DIR (directory of app.py): {APP_DIR}")
+            print(f"[DEBUG Pathing] APP_DIR (re-checked in POST): {APP_DIR}", flush=True)
             # print(f"[DEBUG] app.root_path: {app.root_path}") # app.root_path might be /var/task
             try:
-                print(f"[DEBUG] Contents of APP_DIR ({APP_DIR}): {os.listdir(APP_DIR)}")
+                print(f"[DEBUG Pathing] Contents of APP_DIR ({APP_DIR}): {os.listdir(APP_DIR)}", flush=True)
             except Exception as e_list_root:
-                print(f"[DEBUG] Error listing APP_DIR: {e_list_root}")
+                print(f"[DEBUG Pathing] Error listing APP_DIR: {e_list_root}", flush=True)
             
             bin_dir_path = os.path.join(APP_DIR, 'bin')
-            print(f"[DEBUG] Expected bin_dir_path: {bin_dir_path}")
+            print(f"[DEBUG Pathing] Expected Vercel bin_dir_path (if used by includeFiles): {bin_dir_path}", flush=True)
             try:
-                print(f"[DEBUG] Contents of bin_dir_path ({bin_dir_path}): {os.listdir(bin_dir_path)}")
+                print(f"[DEBUG Pathing] Contents of this bin_dir_path ({bin_dir_path}): {os.listdir(bin_dir_path)}", flush=True)
             except Exception as e_list_bin:
-                print(f"[DEBUG] Error listing bin_dir_path: {e_list_bin}")
+                print(f"[DEBUG Pathing] Error listing this bin_dir_path: {e_list_bin}", flush=True)
             # --- END DEBUGGING ---
 
             # --- IMPORTANT: Update ffmpeg path for Vercel & Local Development ---
@@ -274,20 +279,21 @@ def index():
 
             # Determine if running on Vercel (rough check)
             is_on_vercel = 'VERCEL' in os.environ or 'NOW_REGION' in os.environ
-            print(f"[DEBUG Pathing] Is on Vercel (env check): {is_on_vercel}")
-            print(f"[DEBUG Pathing] Current CWD: {os.getcwd()}")
-            print(f"[DEBUG Pathing] app.py __file__: {__file__}")
-            print(f"[DEBUG Pathing] app.py abspath: {os.path.abspath(__file__)}")
-            print(f"[DEBUG Pathing] APP_DIR (calculated): {APP_DIR}")
+            print(f"[DEBUG Pathing] Is on Vercel (env check): {is_on_vercel}", flush=True)
+            print(f"[DEBUG Pathing] Current CWD: {os.getcwd()}", flush=True)
+            print(f"[DEBUG Pathing] app.py __file__: {__file__}", flush=True)
+            print(f"[DEBUG Pathing] app.py abspath: {os.path.abspath(__file__)}", flush=True)
+            # APP_DIR is already defined from the global scope, confirmed by re-check above
+            # print(f"[DEBUG Pathing] APP_DIR (from global for pathing logic): {APP_DIR}", flush=True)
 
             if os.path.exists(local_mac_ffmpeg_path) and os.access(local_mac_ffmpeg_path, os.X_OK) and not is_on_vercel:
                 ffmpeg_executable_path = local_mac_ffmpeg_path
-                print(f"[DEBUG Pathing] Using local macOS ffmpeg (Homebrew): {ffmpeg_executable_path}")
+                print(f"[DEBUG Pathing] Using local macOS ffmpeg (Homebrew): {ffmpeg_executable_path}", flush=True)
             else:
                 if is_on_vercel:
-                    print(f"[DEBUG Pathing Vercel] Skipping Homebrew check on Vercel or it failed.")
+                    print(f"[DEBUG Pathing Vercel] Skipping Homebrew check on Vercel or it failed.", flush=True)
                 else:
-                    print(f"[DEBUG Pathing Local] Homebrew ffmpeg not found or not executable at: {local_mac_ffmpeg_path}")
+                    print(f"[DEBUG Pathing Local] Homebrew ffmpeg not found or not executable at: {local_mac_ffmpeg_path}", flush=True)
 
                 # Priority 2: Bundled ffmpeg
                 # APP_DIR is defined earlier as os.path.dirname(os.path.abspath(__file__))
@@ -295,37 +301,37 @@ def index():
                 if is_on_vercel:
                     # On Vercel, 'includeFiles' often places files directly in APP_DIR (e.g., /var/task/ffmpeg)
                     bundled_ffmpeg_path = os.path.join(APP_DIR, 'ffmpeg') 
-                    print(f"[DEBUG Pathing Vercel] Expecting bundled ffmpeg directly in APP_DIR at: {bundled_ffmpeg_path}")
+                    print(f"[DEBUG Pathing Vercel] Expecting bundled ffmpeg directly in APP_DIR at: {bundled_ffmpeg_path}", flush=True)
                 else:
                     # For local or other environments, it might still be in a 'bin' subdirectory
                     bundled_ffmpeg_path = os.path.join(APP_DIR, 'bin/ffmpeg')
-                    print(f"[DEBUG Pathing Local/Other] Expecting bundled ffmpeg in 'bin' sub-directory at: {bundled_ffmpeg_path}")
+                    print(f"[DEBUG Pathing Local/Other] Expecting bundled ffmpeg in 'bin' sub-directory at: {bundled_ffmpeg_path}", flush=True)
 
-                print(f"[DEBUG Pathing] Checking for bundled ffmpeg at determined path: {bundled_ffmpeg_path}")
+                print(f"[DEBUG Pathing] Checking for bundled ffmpeg at determined path: {bundled_ffmpeg_path}", flush=True)
                 
                 if os.path.exists(bundled_ffmpeg_path):
-                    print(f"[DEBUG Pathing] Bundled ffmpeg FOUND at: {bundled_ffmpeg_path}")
+                    print(f"[DEBUG Pathing] Bundled ffmpeg FOUND at: {bundled_ffmpeg_path}", flush=True)
                     if not os.access(bundled_ffmpeg_path, os.X_OK):
-                        print(f"[DEBUG Pathing] WARNING: Bundled ffmpeg {bundled_ffmpeg_path} is NOT EXECUTABLE.")
+                        print(f"[DEBUG Pathing] WARNING: Bundled ffmpeg {bundled_ffmpeg_path} is NOT EXECUTABLE.", flush=True)
                         try:
                             os.chmod(bundled_ffmpeg_path, 0o755)
-                            print(f"[DEBUG Pathing] Attempted chmod 755 on {bundled_ffmpeg_path}")
+                            print(f"[DEBUG Pathing] Attempted chmod 755 on {bundled_ffmpeg_path}", flush=True)
                             if os.access(bundled_ffmpeg_path, os.X_OK):
                                 ffmpeg_executable_path = bundled_ffmpeg_path
-                                print(f"[DEBUG Pathing] Using bundled ffmpeg (now executable): {ffmpeg_executable_path}")
+                                print(f"[DEBUG Pathing] Using bundled ffmpeg (now executable): {ffmpeg_executable_path}", flush=True)
                             else:
-                                print(f"[DEBUG Pathing] ERROR: Bundled ffmpeg {bundled_ffmpeg_path} still NOT executable after chmod.")
+                                print(f"[DEBUG Pathing] ERROR: Bundled ffmpeg {bundled_ffmpeg_path} still NOT executable after chmod.", flush=True)
                         except Exception as e_chmod:
-                            print(f"[DEBUG Pathing] ERROR: Could not chmod {bundled_ffmpeg_path}: {e_chmod}")
+                            print(f"[DEBUG Pathing] ERROR: Could not chmod {bundled_ffmpeg_path}: {e_chmod}", flush=True)
                     else:
                         ffmpeg_executable_path = bundled_ffmpeg_path
-                        print(f"[DEBUG Pathing] Using bundled ffmpeg (already executable): {ffmpeg_executable_path}")
+                        print(f"[DEBUG Pathing] Using bundled ffmpeg (already executable): {ffmpeg_executable_path}", flush=True)
                 else:
-                    print(f"[DEBUG Pathing] Bundled ffmpeg path NOT FOUND at: {bundled_ffmpeg_path}")
+                    print(f"[DEBUG Pathing] Bundled ffmpeg path NOT FOUND at: {bundled_ffmpeg_path}", flush=True)
                     # --- Vercel Specific Check: Try alternative common paths for included files ---
                     # This block might now be redundant if the direct APP_DIR check above works, but keep for safety.
                     if is_on_vercel:
-                        print(f"[DEBUG Pathing Vercel] Primary bundled path failed. Trying alternative paths for bundled ffmpeg on Vercel.")
+                        print(f"[DEBUG Pathing Vercel] Primary bundled path failed. Trying alternative paths for bundled ffmpeg on Vercel.", flush=True)
                         # Vercel might place included files directly in APP_DIR or a different structure
                         alt_path_app_dir_bin = os.path.join(APP_DIR, 'bin/ffmpeg') # Check original /var/task/bin/ffmpeg just in case
                         alt_path_cwd_ffmpeg = os.path.abspath('ffmpeg')      # e.g. /var/task/ffmpeg if CWD is /var/task
@@ -334,37 +340,37 @@ def index():
                         paths_to_try = list(dict.fromkeys([alt_path_app_dir_bin, alt_path_cwd_ffmpeg, alt_path_cwd_bin_ffmpeg])) # Unique paths
 
                         for alt_path in paths_to_try:
-                            print(f"[DEBUG Pathing Vercel] Trying alternative: {alt_path}")
+                            print(f"[DEBUG Pathing Vercel] Trying alternative: {alt_path}", flush=True)
                             if os.path.exists(alt_path):
-                                print(f"[DEBUG Pathing Vercel] Found ffmpeg at alternative path: {alt_path}")
+                                print(f"[DEBUG Pathing Vercel] Found ffmpeg at alternative path: {alt_path}", flush=True)
                                 if not os.access(alt_path, os.X_OK):
-                                    print(f"[DEBUG Pathing Vercel] WARNING: Alt path {alt_path} not executable.")
+                                    print(f"[DEBUG Pathing Vercel] WARNING: Alt path {alt_path} not executable.", flush=True)
                                     try:
                                         os.chmod(alt_path, 0o755)
-                                        print(f"[DEBUG Pathing Vercel] Attempted chmod on {alt_path}")
+                                        print(f"[DEBUG Pathing Vercel] Attempted chmod on {alt_path}", flush=True)
                                         if os.access(alt_path, os.X_OK):
                                             ffmpeg_executable_path = alt_path
-                                            print(f"[DEBUG Pathing Vercel] Using alt path {alt_path} (now executable).")
+                                            print(f"[DEBUG Pathing Vercel] Using alt path {alt_path} (now executable).", flush=True)
                                             break # Found and set, exit loop
                                         else:
-                                            print(f"[DEBUG Pathing Vercel] ERROR: Alt path {alt_path} still not executable after chmod.")
+                                            print(f"[DEBUG Pathing Vercel] ERROR: Alt path {alt_path} still not executable after chmod.", flush=True)
                                     except Exception as e_alt_chmod:
-                                        print(f"[DEBUG Pathing Vercel] ERROR: Could not chmod alt path {alt_path}: {e_alt_chmod}")
+                                        print(f"[DEBUG Pathing Vercel] ERROR: Could not chmod alt path {alt_path}: {e_alt_chmod}", flush=True)
                                 else:
                                     ffmpeg_executable_path = alt_path
-                                    print(f"[DEBUG Pathing Vercel] Using alt path {alt_path} (already executable).")
+                                    print(f"[DEBUG Pathing Vercel] Using alt path {alt_path} (already executable).", flush=True)
                                     break # Found and set, exit loop
                             else:
-                                print(f"[DEBUG Pathing Vercel] Alt path {alt_path} not found.")
+                                print(f"[DEBUG Pathing Vercel] Alt path {alt_path} not found.", flush=True)
                         if ffmpeg_executable_path:
-                             print(f"[DEBUG Pathing Vercel] Successfully set ffmpeg_executable_path using alternative search: {ffmpeg_executable_path}")
+                             print(f"[DEBUG Pathing Vercel] Successfully set ffmpeg_executable_path using alternative search: {ffmpeg_executable_path}", flush=True)
                         else:
-                             print(f"[DEBUG Pathing Vercel] Alternative search for ffmpeg on Vercel did not yield a usable binary.")
+                             print(f"[DEBUG Pathing Vercel] Alternative search for ffmpeg on Vercel did not yield a usable binary.", flush=True)
 
                 # Priority 3: Fallback to 'ffmpeg' in PATH (if no specific path worked)
                 if not ffmpeg_executable_path:
                     ffmpeg_executable_path = 'ffmpeg' # Hopes ffmpeg is in system PATH
-                    print(f"[DEBUG Pathing Fallback] No specific ffmpeg path found after all checks. Using fallback 'ffmpeg' from PATH.")
+                    print(f"[DEBUG Pathing Fallback] No specific ffmpeg path found after all checks. Using fallback 'ffmpeg' from PATH.", flush=True)
 
             ffmpeg_command = [
                 ffmpeg_executable_path, '-y',
