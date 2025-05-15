@@ -73,17 +73,32 @@ def get_ffmpeg_path():
     elif is_on_vercel:
         print(f"[DEBUG Pathing] On Vercel, so skipping Homebrew check or bundled ffmpeg was prioritized.", flush=True)
 
-
     # Priority 3: Fallback to 'ffmpeg' in PATH (if no specific path worked)
     if not ffmpeg_executable_path:
         print(f"[DEBUG Pathing] No specific ffmpeg path found after all checks. Using fallback 'ffmpeg' from system PATH.", flush=True)
-        # To verify if 'ffmpeg' from PATH works, we'd ideally run a quick --version check here,
-        # but for simplicity, we just return 'ffmpeg' and let the main command fail if it's not truly available.
-        # A simple check could be `subprocess.run(['ffmpeg', '-version'], capture_output=True, text=True)`
-        # However, to avoid calling subprocess within get_ffmpeg_path for now:
-        return 'ffmpeg' 
+        ffmpeg_executable_path = 'ffmpeg'
     
-    if not ffmpeg_executable_path: # Should ideally not be reached if fallback to 'ffmpeg' is always set
+    # --- START DIAGNOSTIC: Check ffmpeg version and executability ---
+    if ffmpeg_executable_path:
+        try:
+            print(f"[DEBUG Pathing] Attempting to get version from: {ffmpeg_executable_path}", flush=True)
+            process = subprocess.run([ffmpeg_executable_path, '-version'], capture_output=True, text=True, timeout=15, check=False)
+            print(f"[DEBUG Pathing] {ffmpeg_executable_path} -version STDOUT:\n{process.stdout}", flush=True)
+            print(f"[DEBUG Pathing] {ffmpeg_executable_path} -version STDERR:\n{process.stderr}", flush=True)
+            print(f"[DEBUG Pathing] {ffmpeg_executable_path} -version RC: {process.returncode}", flush=True)
+            if process.returncode != 0:
+                # If -version fails, the binary is likely unusable for this environment
+                print(f"[ERROR Pathing] {ffmpeg_executable_path} -version failed. Binary might be incompatible.", flush=True)
+                # Potentially return None or raise an error here if -version fails critically
+                # For now, let it proceed to see if the main command gives more info, but log prominently
+                pass # Let the main command attempt proceed, but error is logged
+        except Exception as e_version:
+            print(f"[ERROR Pathing] Exception while trying {ffmpeg_executable_path} -version: {e_version}", flush=True)
+            # Similar to above, log but let the main command try, or could return None here.
+            pass
+    # --- END DIAGNOSTIC ---
+
+    if not ffmpeg_executable_path:
         print("[ERROR Pathing] FFmpeg path could not be determined after all checks!", flush=True)
         return None # Or raise an error
 
