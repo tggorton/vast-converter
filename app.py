@@ -308,8 +308,11 @@ def index():
                 "[2:v]scale=1164:654[scaled_ad_video];" # Input 2 is VAST ad video, scaled to 1164x654
                 "[base_bg][scaled_ad_video]overlay=x=80:y=163[video_on_bg];" # VAST video position
                 "[video_on_bg][scaled_qr]overlay=x=1317:y=163:shortest=1[with_qr];" # QR code position
-                # Simplified drawtext for testing if the filter is found at all
-                f"[with_qr]drawtext=text='Test':fontcolor=white:x=10:y=10[final_output]"
+                # Draw texts on the [with_qr] stream (Restored)
+                f"[with_qr]"
+                f"drawtext=fontfile={shlex.quote(font_path)}:text='{escape_ffmpeg_text(brand_name)}':fontcolor=white:fontsize=45:x=80:y=857,"
+                f"drawtext=fontfile={shlex.quote(font_path)}:text='{escape_ffmpeg_text(simplified_url_for_display)}':fontcolor=white:fontsize=30:x=80:y=917,"
+                f"drawtext=fontfile={shlex.quote(font_path)}:text='{escape_ffmpeg_text(cta_text)}':fontcolor=white:fontsize=38:x=1332:y=723[final_output]" # Ensure [final_output] is here
             )
 
             # Remove temp file for filter script
