@@ -266,25 +266,43 @@ def index():
                 print(f"[DEBUG] Error listing bin_dir_path: {e_list_bin}")
             # --- END DEBUGGING ---
 
-            # --- IMPORTANT: Update ffmpeg path for Vercel ---
-            # Assumes a static ffmpeg binary is in a 'bin' directory relative to app.py
-            ffmpeg_executable_path = os.path.join(APP_DIR, 'bin/ffmpeg')
-            print(f"[DEBUG] Trying primary ffmpeg_executable_path: {ffmpeg_executable_path}")
-            
-            if os.path.exists(ffmpeg_executable_path):
-                print(f"[DEBUG] Primary ffmpeg path FOUND: {ffmpeg_executable_path}")
-                if not os.access(ffmpeg_executable_path, os.X_OK):
-                    print(f"[DEBUG] WARNING: Primary ffmpeg path {ffmpeg_executable_path} is NOT EXECUTABLE.")
-                else:
-                    print(f"[DEBUG] Primary ffmpeg path {ffmpeg_executable_path} is executable.")
+            # --- IMPORTANT: Update ffmpeg path for Vercel & Local Development ---
+
+            # Priority 1: Local macOS Homebrew ffmpeg (if available)
+            ffmpeg_executable_path = '' # Initialize
+            local_mac_ffmpeg_path = '/opt/homebrew/bin/ffmpeg'
+
+            if os.path.exists(local_mac_ffmpeg_path) and os.access(local_mac_ffmpeg_path, os.X_OK):
+                ffmpeg_executable_path = local_mac_ffmpeg_path
+                print(f"[DEBUG] Using local macOS ffmpeg (Homebrew): {ffmpeg_executable_path}")
             else:
-                print(f"[DEBUG] Primary ffmpeg path NOT FOUND: {ffmpeg_executable_path}")
-                 # Fallback for local testing if bin/ffmpeg isn't set up yet, or if Vercel provides one in PATH
-                if os.path.exists('/opt/homebrew/bin/ffmpeg'): # Local macOS
-                    ffmpeg_executable_path = '/opt/homebrew/bin/ffmpeg'
-                    print(f"[DEBUG] Using local macOS ffmpeg path: {ffmpeg_executable_path}")
-                else: # General fallback, hoping ffmpeg is in PATH on Vercel after all
-                    ffmpeg_executable_path = 'ffmpeg'
+                # Priority 2: Bundled ffmpeg (e.g., for Vercel)
+                # Assumes a static ffmpeg binary is in a 'bin' directory relative to app.py
+                bundled_ffmpeg_path = os.path.join(APP_DIR, 'bin/ffmpeg')
+                print(f"[DEBUG] Checking for bundled ffmpeg_executable_path: {bundled_ffmpeg_path}")
+                if os.path.exists(bundled_ffmpeg_path):
+                    if not os.access(bundled_ffmpeg_path, os.X_OK):
+                        print(f"[DEBUG] WARNING: Bundled ffmpeg path {bundled_ffmpeg_path} FOUND but is NOT EXECUTABLE.")
+                        # Attempt to make it executable (useful for Vercel build context)
+                        try:
+                            os.chmod(bundled_ffmpeg_path, 0o755)
+                            print(f"[DEBUG] Made {bundled_ffmpeg_path} executable.")
+                            if os.access(bundled_ffmpeg_path, os.X_OK):
+                                ffmpeg_executable_path = bundled_ffmpeg_path
+                                print(f"[DEBUG] Using bundled ffmpeg (now executable): {ffmpeg_executable_path}")
+                            else:
+                                print(f"[DEBUG] ERROR: Failed to make {bundled_ffmpeg_path} executable.")
+                        except Exception as e_chmod:
+                            print(f"[DEBUG] ERROR: Could not chmod {bundled_ffmpeg_path}: {e_chmod}")
+                    else:
+                        ffmpeg_executable_path = bundled_ffmpeg_path
+                        print(f"[DEBUG] Using bundled ffmpeg (already executable): {ffmpeg_executable_path}")
+                else:
+                    print(f"[DEBUG] Bundled ffmpeg path NOT FOUND: {bundled_ffmpeg_path}")
+
+                # Priority 3: Fallback to 'ffmpeg' in PATH (if no specific path worked)
+                if not ffmpeg_executable_path:
+                    ffmpeg_executable_path = 'ffmpeg' # Hopes ffmpeg is in system PATH
                     print(f"[DEBUG] Using fallback 'ffmpeg' command from PATH.")
 
             ffmpeg_command = [
