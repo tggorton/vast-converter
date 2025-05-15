@@ -289,10 +289,19 @@ def index():
                 else:
                     print(f"[DEBUG Pathing Local] Homebrew ffmpeg not found or not executable at: {local_mac_ffmpeg_path}")
 
-                # Priority 2: Bundled ffmpeg (e.g., for Vercel)
+                # Priority 2: Bundled ffmpeg
                 # APP_DIR is defined earlier as os.path.dirname(os.path.abspath(__file__))
-                bundled_ffmpeg_path = os.path.join(APP_DIR, 'bin/ffmpeg')
-                print(f"[DEBUG Pathing] Checking for bundled ffmpeg at: {bundled_ffmpeg_path}")
+                
+                if is_on_vercel:
+                    # On Vercel, 'includeFiles' often places files directly in APP_DIR (e.g., /var/task/ffmpeg)
+                    bundled_ffmpeg_path = os.path.join(APP_DIR, 'ffmpeg') 
+                    print(f"[DEBUG Pathing Vercel] Expecting bundled ffmpeg directly in APP_DIR at: {bundled_ffmpeg_path}")
+                else:
+                    # For local or other environments, it might still be in a 'bin' subdirectory
+                    bundled_ffmpeg_path = os.path.join(APP_DIR, 'bin/ffmpeg')
+                    print(f"[DEBUG Pathing Local/Other] Expecting bundled ffmpeg in 'bin' sub-directory at: {bundled_ffmpeg_path}")
+
+                print(f"[DEBUG Pathing] Checking for bundled ffmpeg at determined path: {bundled_ffmpeg_path}")
                 
                 if os.path.exists(bundled_ffmpeg_path):
                     print(f"[DEBUG Pathing] Bundled ffmpeg FOUND at: {bundled_ffmpeg_path}")
@@ -314,14 +323,15 @@ def index():
                 else:
                     print(f"[DEBUG Pathing] Bundled ffmpeg path NOT FOUND at: {bundled_ffmpeg_path}")
                     # --- Vercel Specific Check: Try alternative common paths for included files ---
+                    # This block might now be redundant if the direct APP_DIR check above works, but keep for safety.
                     if is_on_vercel:
-                        print(f"[DEBUG Pathing Vercel] Trying alternative paths for bundled ffmpeg on Vercel.")
+                        print(f"[DEBUG Pathing Vercel] Primary bundled path failed. Trying alternative paths for bundled ffmpeg on Vercel.")
                         # Vercel might place included files directly in APP_DIR or a different structure
-                        alt_path_1 = os.path.join(APP_DIR, 'ffmpeg') # e.g. /var/task/ffmpeg
-                        alt_path_2 = os.path.abspath('ffmpeg')      # e.g. /var/task/ffmpeg if CWD is /var/task
-                        alt_path_3 = os.path.abspath(os.path.join('.', 'bin', 'ffmpeg')) # relative to CWD
+                        alt_path_app_dir_bin = os.path.join(APP_DIR, 'bin/ffmpeg') # Check original /var/task/bin/ffmpeg just in case
+                        alt_path_cwd_ffmpeg = os.path.abspath('ffmpeg')      # e.g. /var/task/ffmpeg if CWD is /var/task
+                        alt_path_cwd_bin_ffmpeg = os.path.abspath(os.path.join('.', 'bin', 'ffmpeg')) # relative to CWD
                         
-                        paths_to_try = list(dict.fromkeys([alt_path_1, alt_path_2, alt_path_3, bundled_ffmpeg_path])) # Unique paths
+                        paths_to_try = list(dict.fromkeys([alt_path_app_dir_bin, alt_path_cwd_ffmpeg, alt_path_cwd_bin_ffmpeg])) # Unique paths
 
                         for alt_path in paths_to_try:
                             print(f"[DEBUG Pathing Vercel] Trying alternative: {alt_path}")
