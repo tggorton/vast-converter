@@ -1,4 +1,6 @@
-Flask
-requests
-qrcode
-Pillow 
+Flask>=2.0
+requests>=2.0
+qrcode>=7.0
+Pillow>=9.0
+gunicorn>=20.0
+werkzeug>=2.0 # Often a Flask dependency, good to specify 
