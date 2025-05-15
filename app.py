@@ -304,8 +304,9 @@ def index():
                     print(f"[DEBUG Pathing Vercel] Expecting bundled ffmpeg directly in APP_DIR at: {bundled_ffmpeg_path}", flush=True)
                 else:
                     # For local or other environments, it might still be in a 'bin' subdirectory
-                    bundled_ffmpeg_path = os.path.join(APP_DIR, 'bin/ffmpeg')
-                    print(f"[DEBUG Pathing Local/Other] Expecting bundled ffmpeg in 'bin' sub-directory at: {bundled_ffmpeg_path}", flush=True)
+                    # NOW, for local, it should also be in APP_DIR if we want to mirror Vercel structure
+                    bundled_ffmpeg_path = os.path.join(APP_DIR, 'ffmpeg') # CHANGED FOR LOCAL CONSISTENCY
+                    print(f"[DEBUG Pathing Local/Other] Expecting bundled ffmpeg in APP_DIR at: {bundled_ffmpeg_path}", flush=True)
 
                 print(f"[DEBUG Pathing] Checking for bundled ffmpeg at determined path: {bundled_ffmpeg_path}", flush=True)
                 
