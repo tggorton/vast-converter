@@ -1,9 +1,8 @@
 {
   "version": 2,
-  "builds": [
-    { "src": "Dockerfile", "use": "@vercel/static-build" }
-  ],
   "routes": [
-    { "src": "/static/(.*)", "dest": "/static/$1" }
+    { "src": "/static/(.*)", "dest": "/static/$1" },
+    { "src": "/generated/(.*)", "dest": "/app.py" },
+    { "src": "/(.*)", "dest": "/app.py" }
   ]
 } 
