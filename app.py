@@ -22,6 +22,74 @@ app.config['ALLOWED_EXTENSIONS'] = {'xml', 'txt'}
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 os.makedirs(app.config['GENERATED_FOLDER'], exist_ok=True)
 
+# Definition for APP_DIR, assuming it's defined globally or near the top of the script
+# For Vercel, __file__ gives the path to app.py in the /var/task directory
+APP_DIR = os.path.dirname(os.path.abspath(__file__))
+
+def get_ffmpeg_path():
+    """
+    Determines the appropriate path for the ffmpeg executable.
+    Priority:
+    1. Bundled ffmpeg (for Vercel or consistent local use if present in APP_DIR).
+    2. Local macOS Homebrew ffmpeg (if available and not on Vercel).
+    3. Fallback to 'ffmpeg' (hoping it's in the system PATH).
+    """
+    is_on_vercel = 'VERCEL' in os.environ or 'NOW_REGION' in os.environ
+    ffmpeg_executable_path = ''
+
+    print(f"[DEBUG Pathing] get_ffmpeg_path invoked. Vercel env: {is_on_vercel}, APP_DIR: {APP_DIR}", flush=True)
+
+    # Priority 1: Bundled ffmpeg (in APP_DIR, e.g., /var/task/ffmpeg or local project root/ffmpeg)
+    bundled_ffmpeg_path = os.path.join(APP_DIR, 'ffmpeg')
+    print(f"[DEBUG Pathing] Checking for bundled ffmpeg at: {bundled_ffmpeg_path}", flush=True)
+    if os.path.exists(bundled_ffmpeg_path):
+        print(f"[DEBUG Pathing] Bundled ffmpeg FOUND at: {bundled_ffmpeg_path}", flush=True)
+        if not os.access(bundled_ffmpeg_path, os.X_OK):
+            print(f"[DEBUG Pathing] Bundled ffmpeg {bundled_ffmpeg_path} is NOT EXECUTABLE. Attempting chmod.", flush=True)
+            try:
+                os.chmod(bundled_ffmpeg_path, 0o755)
+                if os.access(bundled_ffmpeg_path, os.X_OK):
+                    print(f"[DEBUG Pathing] Bundled ffmpeg {bundled_ffmpeg_path} is NOW EXECUTABLE after chmod.", flush=True)
+                    ffmpeg_executable_path = bundled_ffmpeg_path
+                else:
+                    print(f"[DEBUG Pathing] ERROR: chmod failed. Bundled ffmpeg {bundled_ffmpeg_path} still NOT executable.", flush=True)
+            except Exception as e_chmod:
+                print(f"[DEBUG Pathing] ERROR: Could not chmod {bundled_ffmpeg_path}: {e_chmod}", flush=True)
+        else:
+            print(f"[DEBUG Pathing] Using bundled ffmpeg (already executable): {bundled_ffmpeg_path}", flush=True)
+            ffmpeg_executable_path = bundled_ffmpeg_path
+    else:
+        print(f"[DEBUG Pathing] Bundled ffmpeg NOT FOUND at: {bundled_ffmpeg_path}", flush=True)
+
+    # Priority 2: Local macOS Homebrew ffmpeg (only if not on Vercel and bundled not found/used)
+    if not ffmpeg_executable_path and not is_on_vercel:
+        local_mac_ffmpeg_path = '/opt/homebrew/bin/ffmpeg'
+        print(f"[DEBUG Pathing] Bundled ffmpeg not used. Checking for local macOS Homebrew ffmpeg at: {local_mac_ffmpeg_path}", flush=True)
+        if os.path.exists(local_mac_ffmpeg_path) and os.access(local_mac_ffmpeg_path, os.X_OK):
+            print(f"[DEBUG Pathing] Using local macOS ffmpeg (Homebrew): {local_mac_ffmpeg_path}", flush=True)
+            ffmpeg_executable_path = local_mac_ffmpeg_path
+        else:
+            print(f"[DEBUG Pathing] Local macOS Homebrew ffmpeg not found or not executable at: {local_mac_ffmpeg_path}", flush=True)
+    elif is_on_vercel:
+        print(f"[DEBUG Pathing] On Vercel, so skipping Homebrew check or bundled ffmpeg was prioritized.", flush=True)
+
+
+    # Priority 3: Fallback to 'ffmpeg' in PATH (if no specific path worked)
+    if not ffmpeg_executable_path:
+        print(f"[DEBUG Pathing] No specific ffmpeg path found after all checks. Using fallback 'ffmpeg' from system PATH.", flush=True)
+        # To verify if 'ffmpeg' from PATH works, we'd ideally run a quick --version check here,
+        # but for simplicity, we just return 'ffmpeg' and let the main command fail if it's not truly available.
+        # A simple check could be `subprocess.run(['ffmpeg', '-version'], capture_output=True, text=True)`
+        # However, to avoid calling subprocess within get_ffmpeg_path for now:
+        return 'ffmpeg' 
+    
+    if not ffmpeg_executable_path: # Should ideally not be reached if fallback to 'ffmpeg' is always set
+        print("[ERROR Pathing] FFmpeg path could not be determined after all checks!", flush=True)
+        return None # Or raise an error
+
+    print(f"[DEBUG Pathing] Final ffmpeg path determined: {ffmpeg_executable_path}", flush=True)
+    return ffmpeg_executable_path
+
 def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
