@@ -272,38 +272,89 @@ def index():
             ffmpeg_executable_path = '' # Initialize
             local_mac_ffmpeg_path = '/opt/homebrew/bin/ffmpeg'
 
-            if os.path.exists(local_mac_ffmpeg_path) and os.access(local_mac_ffmpeg_path, os.X_OK):
+            # Determine if running on Vercel (rough check)
+            is_on_vercel = 'VERCEL' in os.environ or 'NOW_REGION' in os.environ
+            print(f"[DEBUG Pathing] Is on Vercel (env check): {is_on_vercel}")
+            print(f"[DEBUG Pathing] Current CWD: {os.getcwd()}")
+            print(f"[DEBUG Pathing] app.py __file__: {__file__}")
+            print(f"[DEBUG Pathing] app.py abspath: {os.path.abspath(__file__)}")
+            print(f"[DEBUG Pathing] APP_DIR (calculated): {APP_DIR}")
+
+            if os.path.exists(local_mac_ffmpeg_path) and os.access(local_mac_ffmpeg_path, os.X_OK) and not is_on_vercel:
                 ffmpeg_executable_path = local_mac_ffmpeg_path
-                print(f"[DEBUG] Using local macOS ffmpeg (Homebrew): {ffmpeg_executable_path}")
+                print(f"[DEBUG Pathing] Using local macOS ffmpeg (Homebrew): {ffmpeg_executable_path}")
             else:
+                if is_on_vercel:
+                    print(f"[DEBUG Pathing Vercel] Skipping Homebrew check on Vercel or it failed.")
+                else:
+                    print(f"[DEBUG Pathing Local] Homebrew ffmpeg not found or not executable at: {local_mac_ffmpeg_path}")
+
                 # Priority 2: Bundled ffmpeg (e.g., for Vercel)
-                # Assumes a static ffmpeg binary is in a 'bin' directory relative to app.py
+                # APP_DIR is defined earlier as os.path.dirname(os.path.abspath(__file__))
                 bundled_ffmpeg_path = os.path.join(APP_DIR, 'bin/ffmpeg')
-                print(f"[DEBUG] Checking for bundled ffmpeg_executable_path: {bundled_ffmpeg_path}")
+                print(f"[DEBUG Pathing] Checking for bundled ffmpeg at: {bundled_ffmpeg_path}")
+                
                 if os.path.exists(bundled_ffmpeg_path):
+                    print(f"[DEBUG Pathing] Bundled ffmpeg FOUND at: {bundled_ffmpeg_path}")
                     if not os.access(bundled_ffmpeg_path, os.X_OK):
-                        print(f"[DEBUG] WARNING: Bundled ffmpeg path {bundled_ffmpeg_path} FOUND but is NOT EXECUTABLE.")
-                        # Attempt to make it executable (useful for Vercel build context)
+                        print(f"[DEBUG Pathing] WARNING: Bundled ffmpeg {bundled_ffmpeg_path} is NOT EXECUTABLE.")
                         try:
                             os.chmod(bundled_ffmpeg_path, 0o755)
-                            print(f"[DEBUG] Made {bundled_ffmpeg_path} executable.")
+                            print(f"[DEBUG Pathing] Attempted chmod 755 on {bundled_ffmpeg_path}")
                             if os.access(bundled_ffmpeg_path, os.X_OK):
                                 ffmpeg_executable_path = bundled_ffmpeg_path
-                                print(f"[DEBUG] Using bundled ffmpeg (now executable): {ffmpeg_executable_path}")
+                                print(f"[DEBUG Pathing] Using bundled ffmpeg (now executable): {ffmpeg_executable_path}")
                             else:
-                                print(f"[DEBUG] ERROR: Failed to make {bundled_ffmpeg_path} executable.")
+                                print(f"[DEBUG Pathing] ERROR: Bundled ffmpeg {bundled_ffmpeg_path} still NOT executable after chmod.")
                         except Exception as e_chmod:
-                            print(f"[DEBUG] ERROR: Could not chmod {bundled_ffmpeg_path}: {e_chmod}")
+                            print(f"[DEBUG Pathing] ERROR: Could not chmod {bundled_ffmpeg_path}: {e_chmod}")
                     else:
                         ffmpeg_executable_path = bundled_ffmpeg_path
-                        print(f"[DEBUG] Using bundled ffmpeg (already executable): {ffmpeg_executable_path}")
+                        print(f"[DEBUG Pathing] Using bundled ffmpeg (already executable): {ffmpeg_executable_path}")
                 else:
-                    print(f"[DEBUG] Bundled ffmpeg path NOT FOUND: {bundled_ffmpeg_path}")
+                    print(f"[DEBUG Pathing] Bundled ffmpeg path NOT FOUND at: {bundled_ffmpeg_path}")
+                    # --- Vercel Specific Check: Try alternative common paths for included files ---
+                    if is_on_vercel:
+                        print(f"[DEBUG Pathing Vercel] Trying alternative paths for bundled ffmpeg on Vercel.")
+                        # Vercel might place included files directly in APP_DIR or a different structure
+                        alt_path_1 = os.path.join(APP_DIR, 'ffmpeg') # e.g. /var/task/ffmpeg
+                        alt_path_2 = os.path.abspath('ffmpeg')      # e.g. /var/task/ffmpeg if CWD is /var/task
+                        alt_path_3 = os.path.abspath(os.path.join('.', 'bin', 'ffmpeg')) # relative to CWD
+                        
+                        paths_to_try = list(dict.fromkeys([alt_path_1, alt_path_2, alt_path_3, bundled_ffmpeg_path])) # Unique paths
+
+                        for alt_path in paths_to_try:
+                            print(f"[DEBUG Pathing Vercel] Trying alternative: {alt_path}")
+                            if os.path.exists(alt_path):
+                                print(f"[DEBUG Pathing Vercel] Found ffmpeg at alternative path: {alt_path}")
+                                if not os.access(alt_path, os.X_OK):
+                                    print(f"[DEBUG Pathing Vercel] WARNING: Alt path {alt_path} not executable.")
+                                    try:
+                                        os.chmod(alt_path, 0o755)
+                                        print(f"[DEBUG Pathing Vercel] Attempted chmod on {alt_path}")
+                                        if os.access(alt_path, os.X_OK):
+                                            ffmpeg_executable_path = alt_path
+                                            print(f"[DEBUG Pathing Vercel] Using alt path {alt_path} (now executable).")
+                                            break # Found and set, exit loop
+                                        else:
+                                            print(f"[DEBUG Pathing Vercel] ERROR: Alt path {alt_path} still not executable after chmod.")
+                                    except Exception as e_alt_chmod:
+                                        print(f"[DEBUG Pathing Vercel] ERROR: Could not chmod alt path {alt_path}: {e_alt_chmod}")
+                                else:
+                                    ffmpeg_executable_path = alt_path
+                                    print(f"[DEBUG Pathing Vercel] Using alt path {alt_path} (already executable).")
+                                    break # Found and set, exit loop
+                            else:
+                                print(f"[DEBUG Pathing Vercel] Alt path {alt_path} not found.")
+                        if ffmpeg_executable_path:
+                             print(f"[DEBUG Pathing Vercel] Successfully set ffmpeg_executable_path using alternative search: {ffmpeg_executable_path}")
+                        else:
+                             print(f"[DEBUG Pathing Vercel] Alternative search for ffmpeg on Vercel did not yield a usable binary.")
 
                 # Priority 3: Fallback to 'ffmpeg' in PATH (if no specific path worked)
                 if not ffmpeg_executable_path:
                     ffmpeg_executable_path = 'ffmpeg' # Hopes ffmpeg is in system PATH
-                    print(f"[DEBUG] Using fallback 'ffmpeg' command from PATH.")
+                    print(f"[DEBUG Pathing Fallback] No specific ffmpeg path found after all checks. Using fallback 'ffmpeg' from PATH.")
 
             ffmpeg_command = [
                 ffmpeg_executable_path, '-y',
