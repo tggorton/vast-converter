@@ -238,223 +238,148 @@ def index():
                 "[0:v]scale=1920:1080[base_bg];"  # Input 0 is background
                 "[1:v]scale=530:530[scaled_qr];"  # Input 1 is QR code, scaled to 530x530
                 "[2:v]scale=1164:654[scaled_ad_video];" # Input 2 is VAST ad video, scaled to 1164x654
-                "[base_bg][scaled_ad_video]overlay=x=80:y=163[video_on_bg];" # VAST video position (y shifted up by 50px)
-                "[video_on_bg][scaled_qr]overlay=x=1317:y=163:shortest=1[with_qr];" # QR code centered in L-bar, top-aligned with video (y shifted up by 50px)
+                "[base_bg][scaled_ad_video]overlay=x=80:y=163[video_on_bg];" # VAST video position
+                "[video_on_bg][scaled_qr]overlay=x=1317:y=163:shortest=1[with_qr];" # QR code position
                 # Draw texts on the [with_qr] stream
                 f"[with_qr]"
                 f"drawtext=fontfile={shlex.quote(font_path)}:text='{escape_ffmpeg_text(brand_name)}':fontcolor=white:fontsize=45:x=80:y=857,"
                 f"drawtext=fontfile={shlex.quote(font_path)}:text='{escape_ffmpeg_text(simplified_url_for_display)}':fontcolor=white:fontsize=30:x=80:y=917,"
-                f"drawtext=fontfile={shlex.quote(font_path)}:text='{escape_ffmpeg_text(cta_text)}':fontcolor=white:fontsize=38:x=1332:y=723"
+                f"drawtext=fontfile={shlex.quote(font_path)}:text='{escape_ffmpeg_text(cta_text)}':fontcolor=white:fontsize=38:x=1332:y=723[final_output]" # Ensure [final_output] is here
             )
 
-            filter_script_file = tempfile.NamedTemporaryFile(delete=False, mode='w', suffix='.txt', dir=app.config['GENERATED_FOLDER'])
-            filter_script_file.write(filter_complex_str)
-            filter_script_filepath = filter_script_file.name
-            filter_script_file.close()
-            print(f"Filter script path: {filter_script_filepath}")
-            print(f"Filter script content:\\\\n{filter_complex_str}")
+            # Remove temp file for filter script
+            # filter_script_file = tempfile.NamedTemporaryFile(delete=False, mode='w', suffix='.txt', dir=app.config['GENERATED_FOLDER'])
+            # filter_script_file.write(filter_complex_str)
+            # filter_script_filepath = filter_script_file.name
+            # filter_script_file.close()
+            # print(f"Filter script path: {filter_script_filepath}") # DEBUG
+            # print(f"Filter script content:\\n{filter_complex_str}") # DEBUG
 
-            # --- DEBUGGING FFMPEG PATH on Vercel ---
-            APP_DIR = os.path.dirname(os.path.abspath(__file__))
-            print(f"[DEBUG Pathing] APP_DIR (re-checked in POST): {APP_DIR}", flush=True)
-            # print(f"[DEBUG] app.root_path: {app.root_path}") # app.root_path might be /var/task
-            try:
-                print(f"[DEBUG Pathing] Contents of APP_DIR ({APP_DIR}): {os.listdir(APP_DIR)}", flush=True)
-            except Exception as e_list_root:
-                print(f"[DEBUG Pathing] Error listing APP_DIR: {e_list_root}", flush=True)
-            
-            bin_dir_path = os.path.join(APP_DIR, 'bin')
-            print(f"[DEBUG Pathing] Expected Vercel bin_dir_path (if used by includeFiles): {bin_dir_path}", flush=True)
-            try:
-                print(f"[DEBUG Pathing] Contents of this bin_dir_path ({bin_dir_path}): {os.listdir(bin_dir_path)}", flush=True)
-            except Exception as e_list_bin:
-                print(f"[DEBUG Pathing] Error listing this bin_dir_path: {e_list_bin}", flush=True)
-            # --- END DEBUGGING ---
+            ffmpeg_path = get_ffmpeg_path() # Assuming get_ffmpeg_path() is defined and works
+            if not ffmpeg_path:
+                # This was present in the user's previous version and seems like good error handling
+                return render_template('index.html', error="FFmpeg not found. Please ensure it is installed and accessible.")
 
-            # --- IMPORTANT: Update ffmpeg path for Vercel & Local Development ---
-
-            # Priority 1: Local macOS Homebrew ffmpeg (if available)
-            ffmpeg_executable_path = '' # Initialize
-            local_mac_ffmpeg_path = '/opt/homebrew/bin/ffmpeg'
-
-            # Determine if running on Vercel (rough check)
-            is_on_vercel = 'VERCEL' in os.environ or 'NOW_REGION' in os.environ
-            print(f"[DEBUG Pathing] Is on Vercel (env check): {is_on_vercel}", flush=True)
-            print(f"[DEBUG Pathing] Current CWD: {os.getcwd()}", flush=True)
-            print(f"[DEBUG Pathing] app.py __file__: {__file__}", flush=True)
-            print(f"[DEBUG Pathing] app.py abspath: {os.path.abspath(__file__)}", flush=True)
-            # APP_DIR is already defined from the global scope, confirmed by re-check above
-            # print(f"[DEBUG Pathing] APP_DIR (from global for pathing logic): {APP_DIR}", flush=True)
-
-            if os.path.exists(local_mac_ffmpeg_path) and os.access(local_mac_ffmpeg_path, os.X_OK) and not is_on_vercel:
-                ffmpeg_executable_path = local_mac_ffmpeg_path
-                print(f"[DEBUG Pathing] Using local macOS ffmpeg (Homebrew): {ffmpeg_executable_path}", flush=True)
-            else:
-                if is_on_vercel:
-                    print(f"[DEBUG Pathing Vercel] Skipping Homebrew check on Vercel or it failed.", flush=True)
-                else:
-                    print(f"[DEBUG Pathing Local] Homebrew ffmpeg not found or not executable at: {local_mac_ffmpeg_path}", flush=True)
-
-                # Priority 2: Bundled ffmpeg
-                # APP_DIR is defined earlier as os.path.dirname(os.path.abspath(__file__))
-                
-                if is_on_vercel:
-                    # On Vercel, 'includeFiles' often places files directly in APP_DIR (e.g., /var/task/ffmpeg)
-                    bundled_ffmpeg_path = os.path.join(APP_DIR, 'ffmpeg') 
-                    print(f"[DEBUG Pathing Vercel] Expecting bundled ffmpeg directly in APP_DIR at: {bundled_ffmpeg_path}", flush=True)
-                else:
-                    # For local or other environments, it might still be in a 'bin' subdirectory
-                    # NOW, for local, it should also be in APP_DIR if we want to mirror Vercel structure
-                    bundled_ffmpeg_path = os.path.join(APP_DIR, 'ffmpeg') # CHANGED FOR LOCAL CONSISTENCY
-                    print(f"[DEBUG Pathing Local/Other] Expecting bundled ffmpeg in APP_DIR at: {bundled_ffmpeg_path}", flush=True)
-
-                print(f"[DEBUG Pathing] Checking for bundled ffmpeg at determined path: {bundled_ffmpeg_path}", flush=True)
-                
-                if os.path.exists(bundled_ffmpeg_path):
-                    print(f"[DEBUG Pathing] Bundled ffmpeg FOUND at: {bundled_ffmpeg_path}", flush=True)
-                    if not os.access(bundled_ffmpeg_path, os.X_OK):
-                        print(f"[DEBUG Pathing] WARNING: Bundled ffmpeg {bundled_ffmpeg_path} is NOT EXECUTABLE.", flush=True)
-                        try:
-                            os.chmod(bundled_ffmpeg_path, 0o755)
-                            print(f"[DEBUG Pathing] Attempted chmod 755 on {bundled_ffmpeg_path}", flush=True)
-                            if os.access(bundled_ffmpeg_path, os.X_OK):
-                                ffmpeg_executable_path = bundled_ffmpeg_path
-                                print(f"[DEBUG Pathing] Using bundled ffmpeg (now executable): {ffmpeg_executable_path}", flush=True)
-                            else:
-                                print(f"[DEBUG Pathing] ERROR: Bundled ffmpeg {bundled_ffmpeg_path} still NOT executable after chmod.", flush=True)
-                        except Exception as e_chmod:
-                            print(f"[DEBUG Pathing] ERROR: Could not chmod {bundled_ffmpeg_path}: {e_chmod}", flush=True)
-                    else:
-                        ffmpeg_executable_path = bundled_ffmpeg_path
-                        print(f"[DEBUG Pathing] Using bundled ffmpeg (already executable): {ffmpeg_executable_path}", flush=True)
-                else:
-                    print(f"[DEBUG Pathing] Bundled ffmpeg path NOT FOUND at: {bundled_ffmpeg_path}", flush=True)
-                    # --- Vercel Specific Check: Try alternative common paths for included files ---
-                    # This block might now be redundant if the direct APP_DIR check above works, but keep for safety.
-                    if is_on_vercel:
-                        print(f"[DEBUG Pathing Vercel] Primary bundled path failed. Trying alternative paths for bundled ffmpeg on Vercel.", flush=True)
-                        # Vercel might place included files directly in APP_DIR or a different structure
-                        alt_path_app_dir_bin = os.path.join(APP_DIR, 'bin/ffmpeg') # Check original /var/task/bin/ffmpeg just in case
-                        alt_path_cwd_ffmpeg = os.path.abspath('ffmpeg')      # e.g. /var/task/ffmpeg if CWD is /var/task
-                        alt_path_cwd_bin_ffmpeg = os.path.abspath(os.path.join('.', 'bin', 'ffmpeg')) # relative to CWD
-                        
-                        paths_to_try = list(dict.fromkeys([alt_path_app_dir_bin, alt_path_cwd_ffmpeg, alt_path_cwd_bin_ffmpeg])) # Unique paths
-
-                        for alt_path in paths_to_try:
-                            print(f"[DEBUG Pathing Vercel] Trying alternative: {alt_path}", flush=True)
-                            if os.path.exists(alt_path):
-                                print(f"[DEBUG Pathing Vercel] Found ffmpeg at alternative path: {alt_path}", flush=True)
-                                if not os.access(alt_path, os.X_OK):
-                                    print(f"[DEBUG Pathing Vercel] WARNING: Alt path {alt_path} not executable.", flush=True)
-                                    try:
-                                        os.chmod(alt_path, 0o755)
-                                        print(f"[DEBUG Pathing Vercel] Attempted chmod on {alt_path}", flush=True)
-                                        if os.access(alt_path, os.X_OK):
-                                            ffmpeg_executable_path = alt_path
-                                            print(f"[DEBUG Pathing Vercel] Using alt path {alt_path} (now executable).", flush=True)
-                                            break # Found and set, exit loop
-                                        else:
-                                            print(f"[DEBUG Pathing Vercel] ERROR: Alt path {alt_path} still not executable after chmod.", flush=True)
-                                    except Exception as e_alt_chmod:
-                                        print(f"[DEBUG Pathing Vercel] ERROR: Could not chmod alt path {alt_path}: {e_alt_chmod}", flush=True)
-                                else:
-                                    ffmpeg_executable_path = alt_path
-                                    print(f"[DEBUG Pathing Vercel] Using alt path {alt_path} (already executable).", flush=True)
-                                    break # Found and set, exit loop
-                            else:
-                                print(f"[DEBUG Pathing Vercel] Alt path {alt_path} not found.", flush=True)
-                        if ffmpeg_executable_path:
-                             print(f"[DEBUG Pathing Vercel] Successfully set ffmpeg_executable_path using alternative search: {ffmpeg_executable_path}", flush=True)
-                        else:
-                             print(f"[DEBUG Pathing Vercel] Alternative search for ffmpeg on Vercel did not yield a usable binary.", flush=True)
-
-                # Priority 3: Fallback to 'ffmpeg' in PATH (if no specific path worked)
-                if not ffmpeg_executable_path:
-                    ffmpeg_executable_path = 'ffmpeg' # Hopes ffmpeg is in system PATH
-                    print(f"[DEBUG Pathing Fallback] No specific ffmpeg path found after all checks. Using fallback 'ffmpeg' from PATH.", flush=True)
-
+            # Construct the FFmpeg command
             ffmpeg_command = [
-                ffmpeg_executable_path, '-y',
-                '-loglevel', 'debug',
-                '-loop', '1', '-r', video_framerate, '-i', background_image_path,  # Input 0
-                '-loop', '1', '-r', video_framerate, '-i', qr_filepath,              # Input 1
-                '-i', media_file_url,                                              # Input 2 (VAST video)
-                '-filter_complex_script', filter_script_filepath,
+                ffmpeg_path,
+                '-y',  # Overwrite output files without asking
+                # Inputs:
+                '-i', background_image_path,      # Input 0: Background image
+                '-i', qr_filepath,                # Input 1: QR code image
+                '-i', media_file_url,             # Input 2: VAST ad video
+                # Filter complex directly
+                '-filter_complex', filter_complex_str,
+                # Mapping:
+                '-map', '[final_output]',         # Map the final output of the filter complex to video
+                '-map', '2:a?',                   # Map audio from VAST ad video (input 2), if it exists
+                # Video Codec
                 '-c:v', 'libx264',
-                '-c:a', 'copy',
                 '-preset', 'fast',
-                '-shortest', 
+                '-crf', '23',                     # Constant Rate Factor (quality)
+                # Audio Codec
+                '-c:a', 'aac',
+                '-b:a', '192k',
+                # Other options
+                '-r', video_framerate,            # Set output framerate
+                '-shortest',                      # Finish encoding when the shortest input stream ends
+                '-movflags', '+faststart',        # For web playback (streamable)
                 output_filepath
             ]
             
-            ffmpeg_stderr_content = ""
+            print(f"FFMPEG Command: {' '.join(shlex.quote(str(arg)) for arg in ffmpeg_command)}", flush=True)
+
+            # Ensure the directory for the log file exists (was present in previous version)
+            os.makedirs(os.path.dirname(ffmpeg_log_filepath), exist_ok=True)
+            
+            process = None # Initialize process
             try:
-                # project_dir should be the app's root for Vercel, or CWD
-                project_dir = app.root_path # Or os.getcwd()
-                process = subprocess.Popen(ffmpeg_command, cwd=project_dir, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                stdout, stderr = process.communicate(timeout=300)
+                # Using Popen with communicate, text=True, and errors='replace'
+                with open(ffmpeg_log_filepath, 'w') as log_file_handle: # Renamed to avoid conflict if log_file is used elsewhere
+                    process = subprocess.Popen(
+                        ffmpeg_command,
+                        stdout=subprocess.PIPE, 
+                        stderr=subprocess.PIPE, # Capture stderr
+                        text=True,
+                        errors='replace' # Prevents decoding errors on unknown characters
+                    )
+                    stdout, stderr = process.communicate(timeout=120) # 120 seconds timeout
 
-                # Write ffmpeg output to log file regardless of success/failure for inspection
-                with open(ffmpeg_log_filepath, 'w') as log_file:
-                    log_file.write(f"FFMPEG COMMAND: {' '.join(ffmpeg_command)}\n") # Log the command
-                    log_file.write(f"FFMPEG process.returncode: {process.returncode}\n")
-                    log_file.write("FFMPEG STDOUT:\n")
-                    log_file.write(stdout.decode('utf-8', 'ignore'))
-                    log_file.write("\n\nFFMPEG STDERR:\n")
-                    log_file.write(stderr.decode('utf-8', 'ignore'))
-                
-                if os.path.exists(filter_script_filepath):
-                    with open(filter_script_filepath, 'r') as f_filt:
-                        print(f"--- Content of {filter_script_filepath} ---")
-                        print(f_filt.read())
-                        print("-------------------------------------------")
-                    # os.remove(filter_script_filepath) # Clean up temp filter script
-                
-                if os.path.exists(ffmpeg_log_filepath):
-                    with open(ffmpeg_log_filepath, 'r') as f_log:
-                        ffmpeg_stderr_content = f_log.read()
+                    # Write to log file *after* communicate
+                    log_file_handle.write(f"FFMPEG COMMAND: {' '.join(shlex.quote(str(arg)) for arg in ffmpeg_command)}\\n")
+                    log_file_handle.write(f"FFMPEG process.returncode: {process.returncode}\\n")
+                    log_file_handle.write(f"FFMPEG STDOUT:\\n{stdout}\\n")
+                    log_file_handle.write(f"FFMPEG STDERR:\\n{stderr}\\n")
 
-                if process.returncode != 0:
-                    print(f"FFmpeg failed with return code {process.returncode}")
-                    # ffmpeg_stderr_content is already read from log file
-                    return render_template('index.html', error=f"FFmpeg processing failed. RC: {process.returncode}. Check log.", ffmpeg_stderr=ffmpeg_stderr_content[:3000])
-            
+                if process.returncode == 0:
+                    # Success: clear any previous error from the template context
+                    return render_template('index.html', 
+                                           video_url=url_for('generated_file', filename=output_filename), 
+                                           download_url=url_for('generated_file', filename=output_filename),
+                                           ffmpeg_stderr=None) # Clear previous stderr
+                else:
+                    # FFmpeg failed
+                    print(f"FFMPEG Popen STDOUT (on error):\n{stdout}", flush=True) # Log to Vercel
+                    print(f"FFMPEG Popen STDERR (on error):\n{stderr}", flush=True) # Log to Vercel
+                    
+                    detailed_error = f"FFmpeg processing failed. RC: {process.returncode}.\\n"
+                    if stdout and stdout.strip(): # Add stdout if not empty
+                        detailed_error += f"STDOUT:\\n{stdout}\\n"
+                    if stderr and stderr.strip(): # Add stderr if not empty
+                        detailed_error += f"STDERR:\\n{stderr}\\n"
+                    else: # If stderr is empty, mention it could be in the log or a different issue
+                        detailed_error += "STDERR was empty. Check Vercel logs or FFmpeg log file for more details if the issue persists.\\n"
+                    
+                    # Attempt to read the full log file content as a fallback for display
+                    ffmpeg_log_content_for_display = ""
+                    if os.path.exists(ffmpeg_log_filepath):
+                        with open(ffmpeg_log_filepath, 'r') as log_f_display:
+                            ffmpeg_log_content_for_display = log_f_display.read()
+                        # No need to append to detailed_error if stderr was already captured and displayed.
+                        # The log file written above already contains stdout & stderr.
+                        # However, if stderr was empty, the log file might have more.
+                        if not (stderr and stderr.strip()):
+                             detailed_error += f"Full FFmpeg log from {ffmpeg_log_filepath}:\\n{ffmpeg_log_content_for_display[:2000]}"
+
+
+                    return render_template('index.html', error=detailed_error, ffmpeg_stderr=stderr) # Pass stderr to template
+
             except subprocess.TimeoutExpired:
-                # (Error handling for timeout - fine as is, but ensure ffmpeg_stderr_content is populated)
-                process.kill()
-                # Try to read the log file even on timeout, it might contain partial info
+                print("FFmpeg process timed out after 120 seconds.", flush=True)
+                if process:
+                    process.kill()
+                    # Attempt to get output after kill (might be partial or None)
+                    stdout, stderr = process.communicate() 
+                    print(f"FFMPEG Popen STDOUT (timeout):\n{stdout}", flush=True)
+                    print(f"FFMPEG Popen STDERR (timeout):\n{stderr}", flush=True)
+                
+                # Try to read log file on timeout
+                ffmpeg_log_content_on_timeout = ""
                 if os.path.exists(ffmpeg_log_filepath):
-                    with open(ffmpeg_log_filepath, 'r') as f_log:
-                        ffmpeg_stderr_content = f_log.read()
-                else:
-                    ffmpeg_stderr_content = "FFmpeg process timed out. Log file not found or not written."
-                print("FFmpeg timeout.")
-                return render_template('index.html', error="FFmpeg processing timed out (5 minutes).", ffmpeg_stderr=ffmpeg_stderr_content[:3000])
-            except Exception as e:
-                # (General error handling - fine as is, but ensure ffmpeg_stderr_content is populated)
-                if os.path.exists(ffmpeg_log_filepath):
-                    with open(ffmpeg_log_filepath, 'r') as f_log:
-                        ffmpeg_stderr_content = f_log.read()
-                else:
-                    ffmpeg_stderr_content = f"Log file not found. Exception: {str(e)}"
-                return render_template('index.html', error=f"Error during FFmpeg execution: {e}", ffmpeg_stderr=ffmpeg_stderr_content[:3000])
-            
-            if not os.path.exists(output_filepath) or os.path.getsize(output_filepath) == 0:
-                print(f"FFmpeg output file missing or empty: {output_filepath}")
-                # ffmpeg_stderr_content is already read from log file
-                return render_template('index.html', error="FFmpeg completed but output file is missing or empty. Check log.", ffmpeg_stderr=ffmpeg_stderr_content[:3000])
+                    with open(ffmpeg_log_filepath, 'r') as log_f_timeout:
+                        ffmpeg_log_content_on_timeout = log_f_timeout.read()
 
-            return render_template('index.html', 
-                                   vast_content=vast_content[:1000]+"...", # Show snippet
-                                   ad_title=ad_title,
-                                   brand_name=brand_name,
-                                   media_file_url=media_file_url,
-                                   raw_clickthrough_url=raw_clickthrough_url, # Keep sending raw for info
-                                   final_clickthrough_url=final_resolved_url, # Send the resolved one to template
-                                   qr_code_url=url_for('generated_file', filename=qr_filename),
-                                   output_video_url=url_for('generated_file', filename=output_filename),
-                                   output_filename=output_filename
-                                   )
+                error_message = "FFmpeg processing timed out after 120 seconds."
+                if ffmpeg_log_content_on_timeout:
+                    error_message += f"\\nPartial log:\\n{ffmpeg_log_content_on_timeout[:2000]}"
+                else:
+                    error_message += "\\nNo FFmpeg log content found."
+
+                return render_template('index.html', error=error_message, ffmpeg_stderr=stderr if stderr else "Timeout, no stderr captured.")
+            except Exception as e:
+                print(f"An unexpected error occurred during FFmpeg processing: {e}", flush=True)
+                
+                # Try to read log file on general exception
+                ffmpeg_log_content_on_exception = ""
+                if os.path.exists(ffmpeg_log_filepath):
+                    with open(ffmpeg_log_filepath, 'r') as log_f_exception:
+                        ffmpeg_log_content_on_exception = log_f_exception.read()
+                
+                error_message = f"An unexpected error occurred: {str(e)}"
+                if ffmpeg_log_content_on_exception:
+                     error_message += f"\\nFFmpeg log may contain details:\\n{ffmpeg_log_content_on_exception[:2000]}"
+
+                return render_template('index.html', error=error_message, ffmpeg_stderr="Exception, check logs.")
 
         except ET.ParseError:
             return render_template('index.html', error="Invalid XML content in VAST tag.")
