@@ -7,7 +7,7 @@
       "config": {
         "maxLambdaSize": "25mb",
         "runtime": "python3.9",
-        "includeFiles": "bin/ffmpeg"
+        "includeFiles": "./bin/ffmpeg"
       }
     }
   ],
