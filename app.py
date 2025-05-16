@@ -24,7 +24,7 @@ app.config['MAX_CONTENT_LENGTH'] = int(os.environ.get('MAX_CONTENT_LENGTH', 30 *
 
 # Configuration
 APP_DIR = os.path.dirname(os.path.abspath(__file__))
-UPLOAD_FOLDER = os.path.join(APP_DIR, 'uploads')
+UPLOAD_FOLDER = tempfile.gettempdir()
 GENERATED_FOLDER = os.path.join(APP_DIR, 'generated')
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['GENERATED_FOLDER'] = GENERATED_FOLDER
@@ -169,9 +169,9 @@ def index():
 
         if vast_file and vast_file.filename != '' and allowed_file(vast_file.filename):
             filename = secure_filename(vast_file.filename)
-            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-            vast_file.save(filepath)
-            with open(filepath, 'r', encoding='utf-8') as f:
+            file_path = os.path.join(UPLOAD_FOLDER, filename)
+            vast_file.save(file_path)
+            with open(file_path, 'r', encoding='utf-8') as f:
                 vast_content = f.read()
         elif vast_input:
             if vast_input.startswith(('http://', 'https://')):
