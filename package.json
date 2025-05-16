@@ -1,0 +1,8 @@
+{
+  "name": "vast-converter-scripts",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "vc-build": "chmod +x ./bin/ffmpeg && mkdir -p public && echo 'dummy file' > public/index.html"
+  }
+} 

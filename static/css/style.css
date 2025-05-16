@@ -1,5 +1,5 @@
 body {
-    font-family: Arial, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     margin: 0;
     padding: 0;
     background-color: #f4f6f8;
@@ -10,42 +10,52 @@ body {
 }
 
 header {
-    background-color: #fff; /* Kerv Pink: #E91E63; or a neutral white */
+    background-color: #fff;
     padding: 15px 30px;
     display: flex;
-    justify-content: space-between; /* Pushes Kerv logo to left, potentially other items to right */
+    justify-content: space-between;
     align-items: center;
     border-bottom: 1px solid #e0e0e0;
     box-shadow: 0 2px 4px rgba(0,0,0,0.05);
 }
 
-header .logo-container {
+header .logo {
     display: flex;
     align-items: center;
 }
 
 header .logo-image {
-    height: 40px; /* Adjust as needed */
+    height: 40px;
     width: auto;
+    margin-right: 15px;
+}
+
+header .logo-text {
+    background-color: #E91E63;
+    color: white;
+    padding: 8px 12px;
+    font-weight: bold;
+    font-size: 1.5em;
+    border-radius: 4px;
     margin-right: 15px;
 }
 
 header h1 {
     margin: 0;
     font-size: 1.8em;
-    color: #333; /* Or Kerv Pink: #E91E63; */
+    color: #333;
     font-weight: 500;
 }
 
 .container {
     width: 80%;
-    max-width: 900px; /* Limiting max width for better readability on large screens */
-    margin: 30px auto; /* Centering the container */
+    max-width: 900px;
+    margin: 30px auto;
     padding: 25px;
     background-color: #fff;
     border-radius: 8px;
     box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-    flex-grow: 1; /* Allows footer to be pushed down */
+    flex-grow: 1;
 }
 
 .vast-form .form-group {
@@ -62,10 +72,10 @@ header h1 {
 .vast-form textarea,
 .vast-form input[type="file"] {
     width: 100%;
-    padding: 12px;
+    padding: 10px;
     border: 1px solid #ccc;
     border-radius: 4px;
-    box-sizing: border-box; /* Important for 100% width including padding */
+    box-sizing: border-box;
     font-size: 1em;
 }
 
@@ -75,7 +85,7 @@ header h1 {
 }
 
 .btn-submit {
-    background-color: #007bff; /* A common primary button color */
+    background-color: #007bff;
     color: white;
     padding: 12px 20px;
     border: none;
@@ -89,6 +99,15 @@ header h1 {
     background-color: #0056b3;
 }
 
+.error-message {
+    background-color: #ffebee;
+    color: #c62828;
+    padding: 15px;
+    border: 1px solid #ef9a9a;
+    border-radius: 4px;
+    margin-top: 20px;
+}
+
 .results-section {
     margin-top: 30px;
     padding-top: 20px;
@@ -96,16 +115,9 @@ header h1 {
 }
 
 .results-section h2 {
-    font-size: 1.6em;
+    font-size: 1.5em;
     color: #333;
     margin-bottom: 20px;
-}
-
-.results-section h3 {
-    font-size: 1.3em;
-    color: #444;
-    margin-top: 0;
-    margin-bottom: 10px;
 }
 
 .result-item {
@@ -114,39 +126,19 @@ header h1 {
     background-color: #f9f9f9;
     border: 1px solid #e0e0e0;
     border-radius: 4px;
-    word-wrap: break-word; /* Ensure long strings don't break layout */
 }
 
-.video-player-container video {
+.result-item h3 {
+    font-size: 1.2em;
+    color: #444;
+    margin-top: 0;
+    margin-bottom: 10px;
+}
+
+.result-item video {
     max-width: 100%;
     border-radius: 4px;
     border: 1px solid #ddd;
-}
-
-.error-section .error-message {
-    color: #D8000C; /* Error red */
-    background-color: #FFD2D2; /* Light red background */
-    padding: 10px;
-    border-radius: 4px;
-    border: 1px solid #D8000C;
-    white-space: pre-wrap;
-}
-
-.ffmpeg-log {
-    background-color: #2d2d2d; /* Darker background for logs */
-    color: #f0f0f0; /* Light grey/white text */
-    padding: 15px;
-    border-radius: 4px;
-    font-family: monospace;
-    white-space: pre-wrap;
-    word-break: break-all;
-    max-height: 400px;
-    overflow-y: auto;
-    font-size: 0.9em;
-}
-
-.extracted-info p strong {
-    color: #333;
 }
 
 footer {
@@ -154,5 +146,5 @@ footer {
     padding: 20px;
     background-color: #333;
     color: #fff;
-    margin-top: auto; /* Pushes footer to the bottom if content is short */
+    margin-top: auto;
 } 

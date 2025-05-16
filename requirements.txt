@@ -1,8 +1,3 @@
-Flask
-requests
-qrcode
-werkzeug
-
 Flask>=2.0
 requests>=2.0
 qrcode>=7.0
