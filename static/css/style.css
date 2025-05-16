@@ -1,0 +1,158 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f4f6f8;
+    color: #333;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+header {
+    background-color: #fff; /* Kerv Pink: #E91E63; or a neutral white */
+    padding: 15px 30px;
+    display: flex;
+    justify-content: space-between; /* Pushes Kerv logo to left, potentially other items to right */
+    align-items: center;
+    border-bottom: 1px solid #e0e0e0;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+header .logo-container {
+    display: flex;
+    align-items: center;
+}
+
+header .logo-image {
+    height: 40px; /* Adjust as needed */
+    width: auto;
+    margin-right: 15px;
+}
+
+header h1 {
+    margin: 0;
+    font-size: 1.8em;
+    color: #333; /* Or Kerv Pink: #E91E63; */
+    font-weight: 500;
+}
+
+.container {
+    width: 80%;
+    max-width: 900px; /* Limiting max width for better readability on large screens */
+    margin: 30px auto; /* Centering the container */
+    padding: 25px;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    flex-grow: 1; /* Allows footer to be pushed down */
+}
+
+.vast-form .form-group {
+    margin-bottom: 20px;
+}
+
+.vast-form label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #555;
+}
+
+.vast-form textarea,
+.vast-form input[type="file"] {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box; /* Important for 100% width including padding */
+    font-size: 1em;
+}
+
+.vast-form textarea {
+    min-height: 120px;
+    resize: vertical;
+}
+
+.btn-submit {
+    background-color: #007bff; /* A common primary button color */
+    color: white;
+    padding: 12px 20px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1.1em;
+    transition: background-color 0.3s ease;
+}
+
+.btn-submit:hover {
+    background-color: #0056b3;
+}
+
+.results-section {
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid #eee;
+}
+
+.results-section h2 {
+    font-size: 1.6em;
+    color: #333;
+    margin-bottom: 20px;
+}
+
+.results-section h3 {
+    font-size: 1.3em;
+    color: #444;
+    margin-top: 0;
+    margin-bottom: 10px;
+}
+
+.result-item {
+    margin-bottom: 25px;
+    padding: 15px;
+    background-color: #f9f9f9;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    word-wrap: break-word; /* Ensure long strings don't break layout */
+}
+
+.video-player-container video {
+    max-width: 100%;
+    border-radius: 4px;
+    border: 1px solid #ddd;
+}
+
+.error-section .error-message {
+    color: #D8000C; /* Error red */
+    background-color: #FFD2D2; /* Light red background */
+    padding: 10px;
+    border-radius: 4px;
+    border: 1px solid #D8000C;
+    white-space: pre-wrap;
+}
+
+.ffmpeg-log {
+    background-color: #2d2d2d; /* Darker background for logs */
+    color: #f0f0f0; /* Light grey/white text */
+    padding: 15px;
+    border-radius: 4px;
+    font-family: monospace;
+    white-space: pre-wrap;
+    word-break: break-all;
+    max-height: 400px;
+    overflow-y: auto;
+    font-size: 0.9em;
+}
+
+.extracted-info p strong {
+    color: #333;
+}
+
+footer {
+    text-align: center;
+    padding: 20px;
+    background-color: #333;
+    color: #fff;
+    margin-top: auto; /* Pushes footer to the bottom if content is short */
+} 

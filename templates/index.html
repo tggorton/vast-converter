@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VAST to L-Bar Video Converter</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <img src="{{ url_for('static', filename='images/kerv-logo.png') }}" alt="Kerv Logo" class="logo-image">
+            <h1>VAST to L-Bar Converter</h1>
+        </div>
+    </header>
+
+    <main class="container">
+        <form method="POST" enctype="multipart/form-data" class="vast-form">
+            <div class="form-group">
+                <label for="vast_input">VAST URL or XML Content:</label>
+                <textarea name="vast_input" id="vast_input" rows="10" placeholder="Paste VAST XML content here, or provide a URL to a VAST XML file (e.g., https://.../vast.xml).
+The VAST tag should contain an MP4 MediaFile and a ClickThrough URL."></textarea>
+            </div>
+            <div class="form-group">
+                <label for="vast_file">Or Upload VAST File (.xml or .txt):</label>
+                <input type="file" name="vast_file" id="vast_file" accept=".xml,.txt">
+            </div>
+            <button type="submit" class="btn-submit">Convert VAST</button>
+        </form>
+
+        {# Results section container - its visibility isn\'t strictly conditional anymore for all items #}
+        <section class="results-section">
+
+            {% if error %}
+                {# Specific box for the main error string #}
+                <div class="result-item error-section" style="border-color: #D8000C; background-color: #FFD2D2;">
+                    <h2>Processing Error</h2>
+                    <p class="error-message" style="color: #D8000C;"><strong>Error:</strong> {{ error }}</p>
+                </div>
+            {% endif %}
+
+            {% if video_url %}
+                <div class="result-item success-message-box">
+                    <h2>Conversion Successful!</h2>
+                </div>
+                <div class="result-item video-player-container">
+                    <h3>Generated L-Bar Video:</h3>
+                    <video width="640" height="360" controls>
+                        <source src="{{ video_url }}" type="video/mp4">
+                        Your browser does not support the video tag.
+                    </video>
+                    <p><a href="{{ download_url }}" download="{{ output_filename if output_filename else 'converted_video.mp4' }}">Download Video</a></p>
+                </div>
+            {% endif %}
+
+            {# Extracted Information - Always show this structure #}
+            <div class="result-item extracted-info">
+                <h3>Extracted Information:</h3>
+                <p><strong>Original AdTitle:</strong> {{ ad_title if ad_title else 'N/A' }}</p>
+                <p><strong>Extracted Brand Name:</strong> {{ brand_name if brand_name else 'N/A' }}</p>
+                <p><strong>Video MediaFile URL:</strong> 
+                    {% if media_file_url %}
+                        <a href="{{ media_file_url }}" target="_blank" rel="noopener noreferrer">{{ media_file_url }}</a>
+                    {% else %}
+                        N/A
+                    {% endif %}
+                </p>
+                <p><strong>Raw ClickThrough URL (for QR):</strong> 
+                    {% if raw_clickthrough_url %}
+                        <a href="{{ raw_clickthrough_url }}" target="_blank" rel="noopener noreferrer">{{ raw_clickthrough_url }}</a>
+                    {% else %}
+                        N/A
+                    {% endif %}
+                </p>
+                <p><strong>Final Resolved URL (for display text):</strong> 
+                    {% if final_resolved_url %}
+                         <a href="{{ final_resolved_url }}" target="_blank" rel="noopener noreferrer">{{ final_resolved_url }}</a>
+                    {% else %}
+                        N/A (or same as raw)
+                    {% endif %}
+                </p>
+            </div>
+
+            {# Generated QR Code - Always show this structure #}
+            <div class="result-item qr-code-container">
+                <h3>Generated QR Code:</h3>
+                {% if qr_code_url %}
+                    <img src="{{ qr_code_url }}" alt="Generated QR Code" style="width: 150px; height: 150px; border: 1px solid #ccc;">
+                    <p>Scans to: {{ raw_clickthrough_url if raw_clickthrough_url else 'N/A' }}</p>
+                {% else %}
+                    {# This message matches the user\'s screenshot for the default/error state #}
+                    <p>QR code could not be generated (likely due to missing ClickThrough URL).</p>
+                {% endif %}
+            </div>
+            
+            {# Conditional display for FFmpeg command and logs #}
+            {% if ffmpeg_command_str %}
+            <div class="result-item ffmpeg-command-container">
+                <h3>FFmpeg Command Used:</h3>
+                <pre class="ffmpeg-log">{{ ffmpeg_command_str }}</pre>
+            </div>
+            {% endif %}
+
+            {% if ffmpeg_log_content %}
+            <div class="result-item ffmpeg-output-container">
+                <h3>Full FFmpeg Log:</h3>
+                <pre class="ffmpeg-log">{{ ffmpeg_log_content }}</pre>
+            </div>
+            {% elif ffmpeg_stderr and not video_url %} {# Show specific STDERR only if full log not present AND it\'s an error state #}
+             <div class="result-item ffmpeg-output-container">
+                <h3>FFmpeg Failure Details (STDERR):</h3>
+                <pre class="ffmpeg-log">{{ ffmpeg_stderr }}</pre>
+            </div>
+            {% endif %}
+
+        </section> {# End of results-section #}
+    </main>
+
+    <footer>
+        <p>KERV© Vast Conversion tool | 2025</p>
+    </footer>
+
+    {# Scripts at the end for faster page load #}
+    <script>
+        // ... existing code ...
+    </script>
+</body>
+</html> 
