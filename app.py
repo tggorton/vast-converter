@@ -25,7 +25,7 @@ app.config['MAX_CONTENT_LENGTH'] = int(os.environ.get('MAX_CONTENT_LENGTH', 30 *
 # Configuration
 APP_DIR = os.path.dirname(os.path.abspath(__file__))
 UPLOAD_FOLDER = tempfile.gettempdir()
-GENERATED_FOLDER = os.path.join(APP_DIR, 'generated')
+GENERATED_FOLDER = tempfile.gettempdir()
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['GENERATED_FOLDER'] = GENERATED_FOLDER
 
@@ -216,13 +216,14 @@ def index():
             final_resolved_url = get_final_destination(raw_clickthrough_url)
 
             qr_filename = "qrcode.png"
-            qr_filepath = os.path.join(app.config['GENERATED_FOLDER'], qr_filename)
+            qr_filepath = os.path.join(GENERATED_FOLDER, qr_filename)
             qr_img = qrcode.make(raw_clickthrough_url)
             qr_img.save(qr_filepath)
+            logging.debug(f"QR code saved to temporary path: {qr_filepath}")
             
             output_filename = f"output_{secure_filename(brand_name)}_{os.urandom(4).hex()}.mp4"
-            output_filepath = os.path.join(app.config['GENERATED_FOLDER'], output_filename)
-            ffmpeg_log_filepath = os.path.join(app.config['GENERATED_FOLDER'], f"{output_filename}.log")
+            output_filepath = os.path.join(GENERATED_FOLDER, output_filename)
+            ffmpeg_log_filepath = os.path.join(GENERATED_FOLDER, f"{output_filename}.log")
             
             background_image_path = os.path.join(APP_DIR, 'static/images/background-kerv.jpg')
             font_path = "Arial" # Using Arial, common on macOS
@@ -252,7 +253,7 @@ def index():
                 f"drawtext=fontfile='{font_path}':text='{escape_ffmpeg_text(cta_text)}':fontcolor=white:fontsize=38:x=1332:y=723[final_output]"
             )
 
-            filter_script_file = tempfile.NamedTemporaryFile(delete=False, mode='w', suffix='.txt', dir=app.config['GENERATED_FOLDER'])
+            filter_script_file = tempfile.NamedTemporaryFile(delete=False, mode='w', suffix='.txt', dir=GENERATED_FOLDER)
             filter_script_file.write(filter_complex_str)
             filter_script_filepath = filter_script_file.name
             filter_script_file.close()
@@ -407,13 +408,13 @@ def index():
 
 @app.route('/generated/<filename>')
 def generated_file(filename):
-    safe_generated_folder = os.path.abspath(app.config['GENERATED_FOLDER'])
+    safe_generated_folder = os.path.abspath(GENERATED_FOLDER)
     file_path = os.path.abspath(os.path.join(safe_generated_folder, filename))
     if not file_path.startswith(safe_generated_folder):
         print(f"[SECURITY] Attempt to access file outside generated folder: {file_path} (based on {filename})", flush=True)
         return "Invalid path", 400
-    print(f"Serving generated file from: {app.config['GENERATED_FOLDER']} for filename: {filename}", flush=True)
-    return send_from_directory(app.config['GENERATED_FOLDER'], filename)
+    print(f"Serving generated file from: {GENERATED_FOLDER} for filename: {filename}", flush=True)
+    return send_from_directory(GENERATED_FOLDER, filename)
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5001))
